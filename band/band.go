@@ -55,6 +55,8 @@ const (
 	AU915 Name = "AU915"
 	CN470 Name = "CN470"
 	AS923 Name = "AS923"
+	AS923_INDONESIA Name = "AS923_INDONESIA"
+	AS923_JAPAN Name = "AS923_JAPAN"
 	KR920 Name = "KR920"
 	KR920_FSK Name = "KR920_FSK"
 	IN865 Name = "IN865"
@@ -604,6 +606,10 @@ func GetConfig(name Name, repeaterCompatible bool, dt lorawan.DwellTime) (Band, 
 	switch name {
 	case AS_923, AS923:
 		return newAS923Band(repeaterCompatible, dt)
+	case AS923_INDONESIA:
+		return newAS923IndonesiaBand(repeaterCompatible, dt)
+	case AS923_JAPAN:
+		return newAS923JapanBand(repeaterCompatible, dt)
 	case AU_915_928, AU915:
 		return newAU915Band(repeaterCompatible, dt)
 	case CN_470_510, CN470:
