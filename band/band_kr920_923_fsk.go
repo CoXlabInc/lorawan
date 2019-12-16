@@ -27,7 +27,18 @@ func (b *kr920FskBand) GetDefaults() Defaults {
 }
 
 func (b *kr920FskBand) GetDownlinkTXPower(freq int) int {
-	return 23
+	switch freq {
+	case 920900000, 921100000, 921300000, 921500000, 921700000, 921900000, 922100000, 922300000, 922500000, 922700000, 922900000, 923100000, 923300000:
+		return 23 // ~200mW
+	case 917300000, 917900000, 918500000, 919100000, 919700000, 920300000, 920700000:
+		return 10 // ~10mW
+	default:
+		return 4  // ~3mW
+	}
+}
+
+func (b *kr920FskBand) GetDefaultMaxUplinkEIRP() float32 {
+	return 14 // ~25mW
 }
 
 func (b *kr920FskBand) GetPingSlotFrequency(lorawan.DevAddr, time.Duration) (int, error) {
@@ -40,6 +51,10 @@ func (b *kr920FskBand) GetRX1ChannelIndexForUplinkChannelIndex(uplinkChannel int
 
 func (b *kr920FskBand) GetRX1FrequencyForUplinkFrequency(uplinkFrequency int) (int, error) {
 	return uplinkFrequency, nil
+}
+
+func (b *kr920FskBand) ImplementsTXParamSetup(protocolVersion string) bool {
+	return false
 }
 
 func newKR920FskBand(repeaterCompatible bool) (Band, error) {

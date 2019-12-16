@@ -32,6 +32,10 @@ func (b *as923JapanBand) GetDownlinkTXPower(freq int) int {
 	return 13
 }
 
+func (b *as923JapanBand) GetDefaultMaxUplinkEIRP() float32 {
+	return 13
+}
+
 func (b *as923JapanBand) GetPingSlotFrequency(lorawan.DevAddr, time.Duration) (int, error) {
 	return 923400000, nil
 }
@@ -70,6 +74,10 @@ func (b *as923JapanBand) GetRX1DataRateIndex(uplinkDR, rx1DROffset int) (int, er
 	}
 
 	return dr, nil
+}
+
+func (b *as923JapanBand) ImplementsTXParamSetup(protocolVersion string) bool {
+	return true
 }
 
 func newAS923JapanBand(repeaterCompatible bool, dt lorawan.DwellTime) (Band, error) {
