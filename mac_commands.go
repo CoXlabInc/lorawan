@@ -257,12 +257,16 @@ type ChMask [16]bool
 
 // MarshalBinary marshals the object in binary form.
 func (m ChMask) MarshalBinary() ([]byte, error) {
-	b := make([]byte, 2)
-	for i := uint8(0); i < 16; i++ {
+	var n uint16
+	for i := uint(0); i < 16; i++ {
 		if m[i] {
-			b[i/8] = b[i/8] ^ 1<<(i%8)
+			n |= 1 << i
 		}
 	}
+
+	b := make([]byte, 2)
+	binary.LittleEndian.PutUint16(b, n)
+
 	return b, nil
 }
 
@@ -271,13 +275,14 @@ func (m *ChMask) UnmarshalBinary(data []byte) error {
 	if len(data) != 2 {
 		return errors.New("lorawan: 2 bytes of data are expected")
 	}
-	for i, b := range data {
-		for j := uint8(0); j < 8; j++ {
-			if b&(1<<j) > 0 {
-				m[uint8(i)*8+j] = true
-			}
+
+	n := binary.LittleEndian.Uint16(data)
+	for i := uint(0); i < 16; i++ {
+		if n&(1<<i) != 0 {
+			m[i] = true
 		}
 	}
+
 	return nil
 }
 
@@ -696,23 +701,23 @@ func (p *RXTimingSetupReqPayload) UnmarshalBinary(data []byte) error {
 }
 
 // TXParamSetupReqPayload represents the TXParamSetupReq payload.
+// Note that the MaxEIRP holds the coded index value, not the actual EIRP.
+// To translate from the actual EIRP to the coded index value, use the
+// GetTXParamSetupEIRPIndex function. To translate a coded index value back
+// to the actual EIRP, use the GetTXParamSetupEIRP function.
 type TXParamSetupReqPayload struct {
 	DownlinkDwelltime DwellTime `json:"downlinkDwellTime"`
 	UplinkDwellTime   DwellTime `json:"uplinkDwellTime"`
-	MaxEIRP           uint8     `json:"maxEIRP"`
+	MaxEIRP           uint8     `json:"maxEIRPCoded"`
 }
 
 // MarshalBinary encodes the object into a bytes.
 func (p TXParamSetupReqPayload) MarshalBinary() ([]byte, error) {
-	var b uint8
-	for i, v := range []uint8{8, 10, 12, 13, 14, 16, 18, 20, 21, 24, 26, 27, 29, 30, 33, 36} {
-		if v == p.MaxEIRP {
-			b = uint8(i)
-		}
+	if p.MaxEIRP > 15 {
+		return nil, errors.New("lorawan: max value of MaxEIRP is 15")
 	}
-	if b == 0 {
-		return nil, errors.New("lorawan: invalid MaxEIRP value")
-	}
+
+	b := p.MaxEIRP
 
 	if p.UplinkDwellTime == DwellTime400ms {
 		b = b ^ (1 << 4)
@@ -736,7 +741,8 @@ func (p *TXParamSetupReqPayload) UnmarshalBinary(data []byte) error {
 	if data[0]&(1<<5) > 0 {
 		p.DownlinkDwelltime = DwellTime400ms
 	}
-	p.MaxEIRP = []uint8{8, 10, 12, 13, 14, 16, 18, 20, 21, 24, 26, 27, 29, 30, 33, 36}[data[0]&15]
+
+	p.MaxEIRP = data[0] & 15
 
 	return nil
 }
@@ -1113,7 +1119,7 @@ func (p *ADRParam) UnmarshalBinary(data []byte) error {
 
 // ADRParamSetupReqPayload represents the ADRParamReq payload.
 type ADRParamSetupReqPayload struct {
-	ADRParam ADRParam `josn:"adrParam"`
+	ADRParam ADRParam `json:"adrParam"`
 }
 
 // MarshalBinary encodes the object into bytes.
