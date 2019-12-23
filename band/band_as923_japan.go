@@ -13,7 +13,7 @@ type as923JapanBand struct {
 }
 
 func (b *as923JapanBand) Name() string {
-	return "AS923_INDONESIA"
+	return "AS923_JAPAN"
 }
 
 func (b *as923JapanBand) GetDefaults() Defaults {
