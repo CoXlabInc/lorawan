@@ -632,7 +632,7 @@ func GetConfig(name Name, repeaterCompatible bool, dt lorawan.DwellTime) (Band, 
 	case KR_920_923, KR920:
 		return newKR920Band(repeaterCompatible)
 	case KR920_FSK:
-		return newKR920Band(repeaterCompatible)
+		return newKR920FskBand(repeaterCompatible)
 	case US_902_928, US915:
 		return newUS902Band(repeaterCompatible)
 	case RU_864_870, RU864:
