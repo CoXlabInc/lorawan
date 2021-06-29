@@ -18,7 +18,6 @@ func TestEU863Band(t *testing.T) {
 			So(band.GetDefaults(), ShouldResemble, Defaults{
 				RX2Frequency:     869525000,
 				RX2DataRate:      0,
-				MaxFCntGap:       16384,
 				ReceiveDelay1:    time.Second,
 				ReceiveDelay2:    time.Second * 2,
 				JoinAcceptDelay1: time.Second * 5,
@@ -72,8 +71,63 @@ func TestEU863Band(t *testing.T) {
 			So(f, ShouldEqual, 868500000)
 		})
 
+		Convey("Then GetDataRateIndex returns the exepected values", func() {
+			tests := []struct {
+				DataRate   DataRate
+				Uplink     bool
+				ExpectedDR int
+			}{
+				{
+					DataRate:   DataRate{Modulation: LoRaModulation, SpreadFactor: 12, Bandwidth: 125},
+					Uplink:     true,
+					ExpectedDR: 0,
+				},
+				{
+					DataRate:   DataRate{Modulation: LoRaModulation, SpreadFactor: 12, Bandwidth: 125},
+					Uplink:     false,
+					ExpectedDR: 0,
+				},
+				{
+					DataRate:   DataRate{Modulation: LoRaModulation, SpreadFactor: 7, Bandwidth: 125},
+					Uplink:     true,
+					ExpectedDR: 5,
+				},
+				{
+					DataRate:   DataRate{Modulation: LoRaModulation, SpreadFactor: 7, Bandwidth: 125},
+					Uplink:     false,
+					ExpectedDR: 5,
+				},
+				{
+					DataRate:   DataRate{Modulation: LoRaModulation, SpreadFactor: 7, Bandwidth: 250},
+					Uplink:     true,
+					ExpectedDR: 6,
+				},
+				{
+					DataRate:   DataRate{Modulation: LoRaModulation, SpreadFactor: 7, Bandwidth: 250},
+					Uplink:     false,
+					ExpectedDR: 6,
+				},
+				{
+					DataRate:   DataRate{Modulation: LRFHSSModulation, CodingRate: "1/3", OccupiedChannelWidth: 137000},
+					Uplink:     true,
+					ExpectedDR: 8,
+				},
+				{
+					DataRate:   DataRate{Modulation: LRFHSSModulation, CodingRate: "2/3", OccupiedChannelWidth: 336000},
+					Uplink:     true,
+					ExpectedDR: 11,
+				},
+			}
+
+			for _, t := range tests {
+				dr, err := band.GetDataRateIndex(t.Uplink, t.DataRate)
+				So(err, ShouldBeNil)
+				So(dr, ShouldEqual, t.ExpectedDR)
+			}
+		})
+
 		Convey("Given five extra channels", func() {
-			chans := []int{
+			chans := []uint32{
 				867100000,
 				867300000,
 				867500000,
@@ -158,8 +212,8 @@ func TestEU863Band(t *testing.T) {
 
 			})
 
-			Convey("Then GetUplinkChannelFrequency takes the extra channels into consideration", func() {
-				tests := []int{
+			Convey("Then GetUplinkChannelIndex takes the extra channels into consideration", func() {
+				tests := []uint32{
 					868100000,
 					868300000,
 					868500000,
@@ -176,6 +230,25 @@ func TestEU863Band(t *testing.T) {
 						defaultChannel = true
 					}
 					channel, err := band.GetUplinkChannelIndex(expFreq, defaultChannel)
+					So(err, ShouldBeNil)
+					So(channel, ShouldEqual, expChannel)
+				}
+			})
+
+			Convey("Then GetUplinkChannelIndexForFrequencyDR takes the extra channels into consideration", func() {
+				tests := []uint32{
+					868100000,
+					868300000,
+					868500000,
+					867100000,
+					867300000,
+					867500000,
+					867700000,
+					867900000,
+				}
+
+				for expChannel, freq := range tests {
+					channel, err := band.GetUplinkChannelIndexForFrequencyDR(freq, 3)
 					So(err, ShouldBeNil)
 					So(channel, ShouldEqual, expChannel)
 				}

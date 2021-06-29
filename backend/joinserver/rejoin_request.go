@@ -37,10 +37,12 @@ func handleRejoinRequestWrapper(rejoinReqPL backend.RejoinReqPayload, dk DeviceK
 		}
 
 		rjaPL = backend.RejoinAnsPayload{
-			BasePayload: basePayload,
-			Result: backend.Result{
-				ResultCode:  resCode,
-				Description: err.Error(),
+			BasePayloadResult: backend.BasePayloadResult{
+				BasePayload: basePayload,
+				Result: backend.Result{
+					ResultCode:  resCode,
+					Description: err.Error(),
+				},
 			},
 		}
 	}
@@ -147,27 +149,29 @@ func createRejoinAnsPayload(ctx *context) error {
 	// as the rejoin-request is only implemented for LoRaWAN1.1+ there is no
 	// need to check the OptNeg flag
 	ctx.rejoinAnsPaylaod = backend.RejoinAnsPayload{
-		Result: backend.Result{
-			ResultCode: backend.Success,
+		BasePayloadResult: backend.BasePayloadResult{
+			Result: backend.Result{
+				ResultCode: backend.Success,
+			},
 		},
 		PHYPayload: backend.HEXBytes(b),
 		// TODO: add Lifetime?
 	}
 
-	ctx.rejoinAnsPaylaod.AppSKey, err = getKeyEnvelope(ctx.asKEKLabel, ctx.asKEK, ctx.appSKey)
+	ctx.rejoinAnsPaylaod.AppSKey, err = backend.NewKeyEnvelope(ctx.asKEKLabel, ctx.asKEK, ctx.appSKey)
 	if err != nil {
 		return err
 	}
 
-	ctx.rejoinAnsPaylaod.FNwkSIntKey, err = getKeyEnvelope(ctx.nsKEKLabel, ctx.nsKEK, ctx.fNwkSIntKey)
+	ctx.rejoinAnsPaylaod.FNwkSIntKey, err = backend.NewKeyEnvelope(ctx.nsKEKLabel, ctx.nsKEK, ctx.fNwkSIntKey)
 	if err != nil {
 		return err
 	}
-	ctx.rejoinAnsPaylaod.SNwkSIntKey, err = getKeyEnvelope(ctx.nsKEKLabel, ctx.nsKEK, ctx.sNwkSIntKey)
+	ctx.rejoinAnsPaylaod.SNwkSIntKey, err = backend.NewKeyEnvelope(ctx.nsKEKLabel, ctx.nsKEK, ctx.sNwkSIntKey)
 	if err != nil {
 		return err
 	}
-	ctx.rejoinAnsPaylaod.NwkSEncKey, err = getKeyEnvelope(ctx.nsKEKLabel, ctx.nsKEK, ctx.nwkSEncKey)
+	ctx.rejoinAnsPaylaod.NwkSEncKey, err = backend.NewKeyEnvelope(ctx.nsKEKLabel, ctx.nsKEK, ctx.nwkSEncKey)
 	if err != nil {
 		return err
 	}

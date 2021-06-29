@@ -20,7 +20,6 @@ func (b *as923JapanBand) GetDefaults() Defaults {
 	return Defaults{
 		RX2Frequency:     923200000,
 		RX2DataRate:      2,
-		MaxFCntGap:       16384,
 		ReceiveDelay1:    time.Second,
 		ReceiveDelay2:    time.Second * 2,
 		JoinAcceptDelay1: time.Second * 5,
@@ -28,7 +27,7 @@ func (b *as923JapanBand) GetDefaults() Defaults {
 	}
 }
 
-func (b *as923JapanBand) GetDownlinkTXPower(freq int) int {
+func (b *as923JapanBand) GetDownlinkTXPower(freq uint32) int {
 	return 13
 }
 
@@ -36,7 +35,7 @@ func (b *as923JapanBand) GetDefaultMaxUplinkEIRP() float32 {
 	return 13
 }
 
-func (b *as923JapanBand) GetPingSlotFrequency(lorawan.DevAddr, time.Duration) (int, error) {
+func (b *as923JapanBand) GetPingSlotFrequency(lorawan.DevAddr, time.Duration) (uint32, error) {
 	return 923400000, nil
 }
 
@@ -44,7 +43,7 @@ func (b *as923JapanBand) GetRX1ChannelIndexForUplinkChannelIndex(uplinkChannel i
 	return uplinkChannel, nil
 }
 
-func (b *as923JapanBand) GetRX1FrequencyForUplinkFrequency(uplinkFrequency int) (int, error) {
+func (b *as923JapanBand) GetRX1FrequencyForUplinkFrequency(uplinkFrequency uint32) (uint32, error) {
 	return uplinkFrequency, nil
 }
 

@@ -18,7 +18,6 @@ func (b *ru864Band) GetDefaults() Defaults {
 	return Defaults{
 		RX2Frequency:     869100000,
 		RX2DataRate:      0,
-		MaxFCntGap:       16384,
 		ReceiveDelay1:    time.Second,
 		ReceiveDelay2:    time.Second * 2,
 		JoinAcceptDelay1: time.Second * 5,
@@ -26,7 +25,7 @@ func (b *ru864Band) GetDefaults() Defaults {
 	}
 }
 
-func (b *ru864Band) GetDownlinkTXPower(freq int) int {
+func (b *ru864Band) GetDownlinkTXPower(freq uint32) int {
 	return 14
 }
 
@@ -34,7 +33,7 @@ func (b *ru864Band) GetDefaultMaxUplinkEIRP() float32 {
 	return 16
 }
 
-func (b *ru864Band) GetPingSlotFrequency(lorawan.DevAddr, time.Duration) (int, error) {
+func (b *ru864Band) GetPingSlotFrequency(lorawan.DevAddr, time.Duration) (uint32, error) {
 	return 868900000, nil
 }
 
@@ -42,7 +41,7 @@ func (b *ru864Band) GetRX1ChannelIndexForUplinkChannelIndex(uplinkChannel int) (
 	return uplinkChannel, nil
 }
 
-func (b *ru864Band) GetRX1FrequencyForUplinkFrequency(uplinkFrequency int) (int, error) {
+func (b *ru864Band) GetRX1FrequencyForUplinkFrequency(uplinkFrequency uint32) (uint32, error) {
 	return uplinkFrequency, nil
 }
 
@@ -54,6 +53,8 @@ func newRU864Band(repeaterCompatible bool) (Band, error) {
 	b := ru864Band{
 		band: band{
 			supportsExtraChannels: true,
+			cFListMinDR:           0,
+			cFListMaxDR:           5,
 			dataRates: map[int]DataRate{
 				0: {Modulation: LoRaModulation, SpreadFactor: 12, Bandwidth: 125, uplink: true, downlink: true},
 				1: {Modulation: LoRaModulation, SpreadFactor: 11, Bandwidth: 125, uplink: true, downlink: true},
@@ -98,8 +99,32 @@ func newRU864Band(repeaterCompatible bool) (Band, error) {
 
 	if repeaterCompatible {
 		b.band.maxPayloadSizePerDR = map[string]map[string]map[int]MaxPayloadSize{
-			latest: map[string]map[int]MaxPayloadSize{
+			LoRaWAN_1_0_3: map[string]map[int]MaxPayloadSize{
+				latest: map[int]MaxPayloadSize{ // LoRaWAN 1.0.3A
+					0: {M: 59, N: 51},
+					1: {M: 59, N: 51},
+					2: {M: 59, N: 51},
+					3: {M: 123, N: 115},
+					4: {M: 230, N: 222},
+					5: {M: 230, N: 222},
+					6: {M: 230, N: 222},
+					7: {M: 230, N: 222},
+				},
+			},
+			LoRaWAN_1_1_0: map[string]map[int]MaxPayloadSize{
 				latest: map[int]MaxPayloadSize{ // LoRaWAN 1.1.0B
+					0: {M: 59, N: 51},
+					1: {M: 59, N: 51},
+					2: {M: 59, N: 51},
+					3: {M: 123, N: 115},
+					4: {M: 230, N: 222},
+					5: {M: 230, N: 222},
+					6: {M: 230, N: 222},
+					7: {M: 230, N: 222},
+				},
+			},
+			latest: map[string]map[int]MaxPayloadSize{
+				latest: map[int]MaxPayloadSize{ // RP002-1.0.0, RP002-1.0.1, RP002-1.0.2
 					0: {M: 59, N: 51},
 					1: {M: 59, N: 51},
 					2: {M: 59, N: 51},
@@ -113,8 +138,32 @@ func newRU864Band(repeaterCompatible bool) (Band, error) {
 		}
 	} else {
 		b.band.maxPayloadSizePerDR = map[string]map[string]map[int]MaxPayloadSize{
-			latest: map[string]map[int]MaxPayloadSize{
+			LoRaWAN_1_0_3: map[string]map[int]MaxPayloadSize{
+				latest: map[int]MaxPayloadSize{ // LoRaWAN 1.0.3B
+					0: {M: 59, N: 51},
+					1: {M: 59, N: 51},
+					2: {M: 59, N: 51},
+					3: {M: 123, N: 115},
+					4: {M: 250, N: 242},
+					5: {M: 250, N: 242},
+					6: {M: 250, N: 242},
+					7: {M: 250, N: 242},
+				},
+			},
+			LoRaWAN_1_1_0: map[string]map[int]MaxPayloadSize{
 				latest: map[int]MaxPayloadSize{ // LoRaWAN 1.1.0B
+					0: {M: 59, N: 51},
+					1: {M: 59, N: 51},
+					2: {M: 59, N: 51},
+					3: {M: 123, N: 115},
+					4: {M: 250, N: 242},
+					5: {M: 250, N: 242},
+					6: {M: 250, N: 242},
+					7: {M: 250, N: 242},
+				},
+			},
+			latest: map[string]map[int]MaxPayloadSize{
+				latest: map[int]MaxPayloadSize{ // RP002-1.0.0, RP002-1.0.1, RP002-1.0.2
 					0: {M: 59, N: 51},
 					1: {M: 59, N: 51},
 					2: {M: 59, N: 51},

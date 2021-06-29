@@ -19,6 +19,7 @@ type JoinServerTestSuite struct {
 	deviceKeys map[lorawan.EUI64]DeviceKeys
 	asKEKLabel string
 	keks       map[string][]byte
+	netIDs     map[lorawan.EUI64]lorawan.NetID
 
 	server *httptest.Server
 }
@@ -33,6 +34,7 @@ func (ts *JoinServerTestSuite) SetupSuite() {
 		GetDeviceKeysByDevEUIFunc: ts.getDeviceKeys,
 		GetASKEKLabelByDevEUIFunc: ts.getASKEKLabelByDevEUI,
 		GetKEKByLabelFunc:         ts.getKEKByLabel,
+		GetHomeNetIDByDevEUIFunc:  ts.getHomeNetIDByDevEUI,
 	}
 
 	handler, err := NewHandler(config)
@@ -59,6 +61,14 @@ func (ts *JoinServerTestSuite) getASKEKLabelByDevEUI(devEUI lorawan.EUI64) (stri
 
 func (ts *JoinServerTestSuite) getKEKByLabel(label string) ([]byte, error) {
 	return ts.keks[label], nil
+}
+
+func (ts *JoinServerTestSuite) getHomeNetIDByDevEUI(devEUI lorawan.EUI64) (lorawan.NetID, error) {
+	if netID, ok := ts.netIDs[devEUI]; ok {
+		return netID, nil
+	}
+
+	return lorawan.NetID{}, ErrDevEUINotFound
 }
 
 func (ts *JoinServerTestSuite) TestJoinRequest() {
@@ -207,15 +217,17 @@ func (ts *JoinServerTestSuite) TestJoinRequest() {
 				CFList:  backend.HEXBytes(cFListB),
 			},
 			ExpectedAnsPayload: backend.JoinAnsPayload{
-				BasePayload: backend.BasePayload{
-					ProtocolVersion: backend.ProtocolVersion1_0,
-					SenderID:        "0807060504030201",
-					ReceiverID:      "010203",
-					TransactionID:   1234,
-					MessageType:     backend.JoinAns,
-				},
-				Result: backend.Result{
-					ResultCode: backend.Success,
+				BasePayloadResult: backend.BasePayloadResult{
+					BasePayload: backend.BasePayload{
+						ProtocolVersion: backend.ProtocolVersion1_0,
+						SenderID:        "0807060504030201",
+						ReceiverID:      "010203",
+						TransactionID:   1234,
+						MessageType:     backend.JoinAns,
+					},
+					Result: backend.Result{
+						ResultCode: backend.Success,
+					},
 				},
 				PHYPayload: backend.HEXBytes(validJAPHYBytes),
 				NwkSKey: &backend.KeyEnvelope{
@@ -250,15 +262,17 @@ func (ts *JoinServerTestSuite) TestJoinRequest() {
 				CFList:  backend.HEXBytes(cFListB),
 			},
 			ExpectedAnsPayload: backend.JoinAnsPayload{
-				BasePayload: backend.BasePayload{
-					ProtocolVersion: backend.ProtocolVersion1_0,
-					SenderID:        "0807060504030201",
-					ReceiverID:      "010203",
-					TransactionID:   1234,
-					MessageType:     backend.JoinAns,
-				},
-				Result: backend.Result{
-					ResultCode: backend.Success,
+				BasePayloadResult: backend.BasePayloadResult{
+					BasePayload: backend.BasePayload{
+						ProtocolVersion: backend.ProtocolVersion1_0,
+						SenderID:        "0807060504030201",
+						ReceiverID:      "010203",
+						TransactionID:   1234,
+						MessageType:     backend.JoinAns,
+					},
+					Result: backend.Result{
+						ResultCode: backend.Success,
+					},
 				},
 				PHYPayload: backend.HEXBytes(validJAPHYLW11Bytes),
 				FNwkSIntKey: &backend.KeyEnvelope{
@@ -304,15 +318,17 @@ func (ts *JoinServerTestSuite) TestJoinRequest() {
 				CFList:  backend.HEXBytes(cFListB),
 			},
 			ExpectedAnsPayload: backend.JoinAnsPayload{
-				BasePayload: backend.BasePayload{
-					ProtocolVersion: backend.ProtocolVersion1_0,
-					SenderID:        "0807060504030201",
-					ReceiverID:      "010203",
-					TransactionID:   1234,
-					MessageType:     backend.JoinAns,
-				},
-				Result: backend.Result{
-					ResultCode: backend.Success,
+				BasePayloadResult: backend.BasePayloadResult{
+					BasePayload: backend.BasePayload{
+						ProtocolVersion: backend.ProtocolVersion1_0,
+						SenderID:        "0807060504030201",
+						ReceiverID:      "010203",
+						TransactionID:   1234,
+						MessageType:     backend.JoinAns,
+					},
+					Result: backend.Result{
+						ResultCode: backend.Success,
+					},
 				},
 				PHYPayload: backend.HEXBytes(validJAPHYLW11Bytes),
 				FNwkSIntKey: &backend.KeyEnvelope{
@@ -356,16 +372,18 @@ func (ts *JoinServerTestSuite) TestJoinRequest() {
 				CFList:  backend.HEXBytes(cFListB),
 			},
 			ExpectedAnsPayload: backend.JoinAnsPayload{
-				BasePayload: backend.BasePayload{
-					ProtocolVersion: backend.ProtocolVersion1_0,
-					SenderID:        "0807060504030201",
-					ReceiverID:      "010203",
-					TransactionID:   1234,
-					MessageType:     backend.JoinAns,
-				},
-				Result: backend.Result{
-					ResultCode:  backend.MICFailed,
-					Description: "invalid mic",
+				BasePayloadResult: backend.BasePayloadResult{
+					BasePayload: backend.BasePayload{
+						ProtocolVersion: backend.ProtocolVersion1_0,
+						SenderID:        "0807060504030201",
+						ReceiverID:      "010203",
+						TransactionID:   1234,
+						MessageType:     backend.JoinAns,
+					},
+					Result: backend.Result{
+						ResultCode:  backend.MICFailed,
+						Description: "invalid mic",
+					},
 				},
 			},
 		},
@@ -391,16 +409,18 @@ func (ts *JoinServerTestSuite) TestJoinRequest() {
 				CFList:  backend.HEXBytes(cFListB),
 			},
 			ExpectedAnsPayload: backend.JoinAnsPayload{
-				BasePayload: backend.BasePayload{
-					ProtocolVersion: backend.ProtocolVersion1_0,
-					SenderID:        "0807060504030201",
-					ReceiverID:      "010203",
-					TransactionID:   1234,
-					MessageType:     backend.JoinAns,
-				},
-				Result: backend.Result{
-					ResultCode:  backend.UnknownDevEUI,
-					Description: ErrDevEUINotFound.Error(),
+				BasePayloadResult: backend.BasePayloadResult{
+					BasePayload: backend.BasePayload{
+						ProtocolVersion: backend.ProtocolVersion1_0,
+						SenderID:        "0807060504030201",
+						ReceiverID:      "010203",
+						TransactionID:   1234,
+						MessageType:     backend.JoinAns,
+					},
+					Result: backend.Result{
+						ResultCode:  backend.UnknownDevEUI,
+						Description: ErrDevEUINotFound.Error(),
+					},
 				},
 			},
 		},
@@ -620,15 +640,17 @@ func (ts *JoinServerTestSuite) TestRejoinRequest() {
 				CFList:  backend.HEXBytes(cFListB),
 			},
 			ExpectedAnsPayload: backend.RejoinAnsPayload{
-				BasePayload: backend.BasePayload{
-					ProtocolVersion: backend.ProtocolVersion1_0,
-					SenderID:        "0807060504030201",
-					ReceiverID:      "010203",
-					TransactionID:   1234,
-					MessageType:     backend.RejoinAns,
-				},
-				Result: backend.Result{
-					ResultCode: backend.Success,
+				BasePayloadResult: backend.BasePayloadResult{
+					BasePayload: backend.BasePayload{
+						ProtocolVersion: backend.ProtocolVersion1_0,
+						SenderID:        "0807060504030201",
+						ReceiverID:      "010203",
+						TransactionID:   1234,
+						MessageType:     backend.RejoinAns,
+					},
+					Result: backend.Result{
+						ResultCode: backend.Success,
+					},
 				},
 				PHYPayload: backend.HEXBytes(ja0PHYBytes),
 				SNwkSIntKey: &backend.KeyEnvelope{
@@ -669,15 +691,17 @@ func (ts *JoinServerTestSuite) TestRejoinRequest() {
 				CFList:  backend.HEXBytes(cFListB),
 			},
 			ExpectedAnsPayload: backend.RejoinAnsPayload{
-				BasePayload: backend.BasePayload{
-					ProtocolVersion: backend.ProtocolVersion1_0,
-					SenderID:        "0807060504030201",
-					ReceiverID:      "010203",
-					TransactionID:   1234,
-					MessageType:     backend.RejoinAns,
-				},
-				Result: backend.Result{
-					ResultCode: backend.Success,
+				BasePayloadResult: backend.BasePayloadResult{
+					BasePayload: backend.BasePayload{
+						ProtocolVersion: backend.ProtocolVersion1_0,
+						SenderID:        "0807060504030201",
+						ReceiverID:      "010203",
+						TransactionID:   1234,
+						MessageType:     backend.RejoinAns,
+					},
+					Result: backend.Result{
+						ResultCode: backend.Success,
+					},
 				},
 				PHYPayload: backend.HEXBytes(ja1PHYBytes),
 				SNwkSIntKey: &backend.KeyEnvelope{
@@ -717,15 +741,17 @@ func (ts *JoinServerTestSuite) TestRejoinRequest() {
 				RxDelay: 1,
 			},
 			ExpectedAnsPayload: backend.RejoinAnsPayload{
-				BasePayload: backend.BasePayload{
-					ProtocolVersion: backend.ProtocolVersion1_0,
-					SenderID:        "0807060504030201",
-					ReceiverID:      "010203",
-					TransactionID:   1234,
-					MessageType:     backend.RejoinAns,
-				},
-				Result: backend.Result{
-					ResultCode: backend.Success,
+				BasePayloadResult: backend.BasePayloadResult{
+					BasePayload: backend.BasePayload{
+						ProtocolVersion: backend.ProtocolVersion1_0,
+						SenderID:        "0807060504030201",
+						ReceiverID:      "010203",
+						TransactionID:   1234,
+						MessageType:     backend.RejoinAns,
+					},
+					Result: backend.Result{
+						ResultCode: backend.Success,
+					},
 				},
 				PHYPayload: backend.HEXBytes(ja2PHYBytes),
 				SNwkSIntKey: &backend.KeyEnvelope{
@@ -760,6 +786,98 @@ func (ts *JoinServerTestSuite) TestRejoinRequest() {
 			defer resp.Body.Close()
 
 			var ansPayload backend.RejoinAnsPayload
+			assert.NoError(json.NewDecoder(resp.Body).Decode(&ansPayload))
+
+			assert.Equal(tst.ExpectedAnsPayload, ansPayload)
+		})
+	}
+}
+
+func (ts *JoinServerTestSuite) TestHomeNSReq() {
+	tests := []struct {
+		Name               string
+		NetIDs             map[lorawan.EUI64]lorawan.NetID
+		RequestPayload     backend.HomeNSReqPayload
+		ExpectedAnsPayload backend.HomeNSAnsPayload
+	}{
+		{
+			Name: "found",
+			NetIDs: map[lorawan.EUI64]lorawan.NetID{
+				lorawan.EUI64{1, 2, 3, 4, 5, 6, 7, 8}: lorawan.NetID{1, 2, 3},
+			},
+			RequestPayload: backend.HomeNSReqPayload{
+				BasePayload: backend.BasePayload{
+					ProtocolVersion: backend.ProtocolVersion1_0,
+					SenderID:        "010203",
+					ReceiverID:      "0807060504030201",
+					TransactionID:   1234,
+					MessageType:     backend.HomeNSReq,
+				},
+				DevEUI: lorawan.EUI64{1, 2, 3, 4, 5, 6, 7, 8},
+			},
+			ExpectedAnsPayload: backend.HomeNSAnsPayload{
+				BasePayloadResult: backend.BasePayloadResult{
+					BasePayload: backend.BasePayload{
+						ProtocolVersion: backend.ProtocolVersion1_0,
+						SenderID:        "0807060504030201",
+						ReceiverID:      "010203",
+						TransactionID:   1234,
+						MessageType:     backend.HomeNSAns,
+					},
+					Result: backend.Result{
+						ResultCode: backend.Success,
+					},
+				},
+				HNetID: lorawan.NetID{1, 2, 3},
+			},
+		},
+		{
+			Name: "not found",
+			NetIDs: map[lorawan.EUI64]lorawan.NetID{
+				lorawan.EUI64{1, 2, 3, 4, 5, 6, 7, 8}: lorawan.NetID{1, 2, 3},
+			},
+			RequestPayload: backend.HomeNSReqPayload{
+				BasePayload: backend.BasePayload{
+					ProtocolVersion: backend.ProtocolVersion1_0,
+					SenderID:        "010203",
+					ReceiverID:      "0807060504030201",
+					TransactionID:   1234,
+					MessageType:     backend.HomeNSReq,
+				},
+				DevEUI: lorawan.EUI64{2, 2, 3, 4, 5, 6, 7, 8},
+			},
+			ExpectedAnsPayload: backend.HomeNSAnsPayload{
+				BasePayloadResult: backend.BasePayloadResult{
+					BasePayload: backend.BasePayload{
+						ProtocolVersion: backend.ProtocolVersion1_0,
+						SenderID:        "0807060504030201",
+						ReceiverID:      "010203",
+						TransactionID:   1234,
+						MessageType:     backend.HomeNSAns,
+					},
+					Result: backend.Result{
+						ResultCode:  backend.UnknownDevEUI,
+						Description: "deveui does not exist",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tst := range tests {
+		ts.T().Run(tst.Name, func(t *testing.T) {
+			assert := require.New(t)
+
+			ts.netIDs = tst.NetIDs
+
+			b, err := json.Marshal(tst.RequestPayload)
+			assert.NoError(err)
+
+			resp, err := http.Post(ts.server.URL, "application/json", bytes.NewReader(b))
+			assert.NoError(err)
+			defer resp.Body.Close()
+
+			var ansPayload backend.HomeNSAnsPayload
 			assert.NoError(json.NewDecoder(resp.Body).Decode(&ansPayload))
 
 			assert.Equal(tst.ExpectedAnsPayload, ansPayload)

@@ -18,7 +18,6 @@ func TestUS902Band(t *testing.T) {
 			So(band.GetDefaults(), ShouldResemble, Defaults{
 				RX2Frequency:     923300000,
 				RX2DataRate:      8,
-				MaxFCntGap:       16384,
 				ReceiveDelay1:    time.Second,
 				ReceiveDelay2:    time.Second * 2,
 				JoinAcceptDelay1: time.Second * 5,
@@ -55,7 +54,7 @@ func TestUS902Band(t *testing.T) {
 		Convey("When testing the uplink channels", func() {
 			testTable := []struct {
 				Channel   int
-				Frequency int
+				Frequency uint32
 				MinDR     int
 				MaxDR     int
 			}{
@@ -78,10 +77,10 @@ func TestUS902Band(t *testing.T) {
 
 		Convey("When testing the downlink channels", func() {
 			testTable := []struct {
-				Frequency    int
+				Frequency    uint32
 				DataRate     int
 				Channel      int
-				ExpFrequency int
+				ExpFrequency uint32
 			}{
 				{Frequency: 914900000, DataRate: 3, Channel: 63, ExpFrequency: 927500000},
 				{Frequency: 903000000, DataRate: 4, Channel: 64, ExpFrequency: 923300000},

@@ -3,10 +3,11 @@
 package band
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/brocaar/lorawan"
 )
@@ -22,14 +23,18 @@ const (
 	LoRaWAN_1_0_1 = "1.0.1"
 	LoRaWAN_1_0_2 = "1.0.2"
 	LoRaWAN_1_0_3 = "1.0.3"
+	LoRaWAN_1_0_4 = "1.0.4"
 	LoRaWAN_1_1_0 = "1.1.0"
 )
 
 // Regional parameters revisions.
 const (
-	RegParamRevA = "A"
-	RegParamRevB = "B"
-	RegParamRevC = "C"
+	RegParamRevA           = "A"
+	RegParamRevB           = "B"
+	RegParamRevC           = "C"
+	RegParamRevRP002_1_0_0 = "RP002-1.0.0"
+	RegParamRevRP002_1_0_1 = "RP002-1.0.1"
+	RegParamRevRP002_1_0_2 = "RP002-1.0.2"
 )
 
 // Available ISM bands (deprecated, use the common name).
@@ -48,19 +53,22 @@ const (
 
 // Available ISM bands (by common name).
 const (
-	EU868 Name = "EU868"
-	US915 Name = "US915"
-	CN779 Name = "CN779"
-	EU433 Name = "EU433"
-	AU915 Name = "AU915"
-	CN470 Name = "CN470"
-	AS923 Name = "AS923"
+	EU868   Name = "EU868"
+	US915   Name = "US915"
+	CN779   Name = "CN779"
+	EU433   Name = "EU433"
+	AU915   Name = "AU915"
+	CN470   Name = "CN470"
+	AS923   Name = "AS923"   // 0 MHz frequency offset
+	AS923_2 Name = "AS923-2" // -1.80 MHz frequency offset
+	AS923_3 Name = "AS923-3" // -6.60 MHz frequency offset
 	AS923_INDONESIA Name = "AS923_INDONESIA"
 	AS923_JAPAN Name = "AS923_JAPAN"
-	KR920 Name = "KR920"
+	KR920   Name = "KR920"
 	KR920_FSK Name = "KR920_FSK"
-	IN865 Name = "IN865"
-	RU864 Name = "RU864"
+	IN865   Name = "IN865"
+	RU864   Name = "RU864"
+	ISM2400 Name = "ISM2400"
 )
 
 // Modulation defines the modulation type.
@@ -68,18 +76,21 @@ type Modulation string
 
 // Possible modulation types.
 const (
-	LoRaModulation Modulation = "LORA"
-	FSKModulation  Modulation = "FSK"
+	LoRaModulation   Modulation = "LORA"
+	FSKModulation    Modulation = "FSK"
+	LRFHSSModulation Modulation = "LR_FHSS"
 )
 
 // DataRate defines a data rate
 type DataRate struct {
-	uplink       bool       // data-rate can be used for uplink
-	downlink     bool       // data-rate can be used for downlink
-	Modulation   Modulation `json:"modulation"`
-	SpreadFactor int        `json:"spreadFactor,omitempty"` // used for LoRa
-	Bandwidth    int        `json:"bandwidth,omitempty"`    // in kHz, used for LoRa
-	BitRate      int        `json:"bitRate,omitempty"`      // bits per second, used for FSK
+	uplink               bool       // data-rate can be used for uplink
+	downlink             bool       // data-rate can be used for downlink
+	Modulation           Modulation `json:"modulation"`
+	SpreadFactor         int        `json:"spreadFactor,omitempty"` // used for LoRa
+	Bandwidth            int        `json:"bandwidth,omitempty"`    // in kHz, used for LoRa
+	BitRate              int        `json:"bitRate,omitempty"`      // bits per second, used for FSK
+	CodingRate           string     `json:"codingRate,omitempty"`   // LR-FHSS (only for LR-FHSS it is used to determine the DR, for LoRa 2.4 GHz it is not specified per data-rate).
+	OccupiedChannelWidth int        `json:"occupiedChannelWidth"`   // LR-FHSS in Hz
 }
 
 // MaxPayloadSize defines the max payload size
@@ -90,7 +101,7 @@ type MaxPayloadSize struct {
 
 // Channel defines the channel structure
 type Channel struct {
-	Frequency int // frequency in Hz
+	Frequency uint32 // frequency in Hz
 	MinDR     int
 	MaxDR     int
 	enabled   bool
@@ -100,13 +111,10 @@ type Channel struct {
 // Defaults defines the default values defined by a band.
 type Defaults struct {
 	// RX2Frequency defines the fixed frequency for the RX2 receive window
-	RX2Frequency int
+	RX2Frequency uint32
 
 	// RX2DataRate defines the fixed data-rate for the RX2 receive window
 	RX2DataRate int
-
-	// MaxFcntGap defines the MAC_FCNT_GAP default value.
-	MaxFCntGap uint32
 
 	// ReceiveDelay1 defines the RECEIVE_DELAY1 default value.
 	ReceiveDelay1 time.Duration
@@ -152,7 +160,7 @@ type Band interface {
 
 	// AddChannel adds an extra (user-configured) uplink / downlink channel.
 	// Note: this is not supported by every region.
-	AddChannel(frequency, minDR, maxDR int) error
+	AddChannel(frequency uint32, minDR, maxDR int) error
 
 	// GetUplinkChannel returns the uplink channel for the given index.
 	GetUplinkChannel(channel int) (Channel, error)
@@ -161,7 +169,11 @@ type Band interface {
 	// As it is possible that the same frequency occurs twice (eg. one time as
 	// a default LoRaWAN channel and one time as a custom channel using a 250 kHz
 	// data-rate), a bool must be given indicating this is a default channel.
-	GetUplinkChannelIndex(frequency int, defaultChannel bool) (int, error)
+	GetUplinkChannelIndex(frequency uint32, defaultChannel bool) (int, error)
+
+	// GetUplinkChannelIndexForFrequencyDR returns the uplink channel index given
+	// a frequency and data-rate.
+	GetUplinkChannelIndexForFrequencyDR(frequency uint32, dr int) (int, error)
 
 	// GetDownlinkChannel returns the downlink channel for the given index.
 	GetDownlinkChannel(channel int) (Channel, error)
@@ -194,10 +206,10 @@ type Band interface {
 
 	// GetRX1FrequencyForUplinkFrequency returns the frequency to use for RX1
 	// given the uplink frequency.
-	GetRX1FrequencyForUplinkFrequency(uplinkFrequency int) (int, error)
+	GetRX1FrequencyForUplinkFrequency(uplinkFrequency uint32) (uint32, error)
 
 	// GetPingSlotFrequency returns the frequency to use for the Class-B ping-slot.
-	GetPingSlotFrequency(devAddr lorawan.DevAddr, beaconTime time.Duration) (int, error)
+	GetPingSlotFrequency(devAddr lorawan.DevAddr, beaconTime time.Duration) (uint32, error)
 
 	// GetCFList returns the CFList used for OTAA activation.
 	// The CFList contains the extra channels (e.g. for the EU band) or the
@@ -221,7 +233,7 @@ type Band interface {
 	// GetDownlinkTXPower returns the TX power for downlink transmissions
 	// using the given frequency. Depending the band, it could return different
 	// values for different frequencies.
-	GetDownlinkTXPower(frequency int) int
+	GetDownlinkTXPower(frequency uint32) int
 
 	// GetDefaultMaxUplinkEIRP returns the default uplink EIRP as defined by the
 	// Regional Parameters.
@@ -236,6 +248,8 @@ type Band interface {
 
 type band struct {
 	supportsExtraChannels bool
+	cFListMinDR           int
+	cFListMaxDR           int
 	dataRates             map[int]DataRate
 	maxPayloadSizePerDR   map[string]map[string]map[int]MaxPayloadSize // LoRaWAN mac-version / Regional Parameters Revision / data-rate
 	rx1DataRateTable      map[int][]int
@@ -249,12 +263,12 @@ func (b *band) GetDataRateIndex(uplink bool, dataRate DataRate) (int, error) {
 		// some bands implement different data-rates with the same parameters
 		// for uplink and downlink
 		if uplink {
-			if d.uplink == true && d.Modulation == dataRate.Modulation && d.Bandwidth == dataRate.Bandwidth && d.BitRate == dataRate.BitRate && d.SpreadFactor == dataRate.SpreadFactor {
+			if d.uplink == true && d.Modulation == dataRate.Modulation && d.Bandwidth == dataRate.Bandwidth && d.BitRate == dataRate.BitRate && d.SpreadFactor == dataRate.SpreadFactor && d.OccupiedChannelWidth == dataRate.OccupiedChannelWidth && d.CodingRate == dataRate.CodingRate {
 				return i, nil
 			}
 		}
 		if !uplink {
-			if d.downlink == true && d.Modulation == dataRate.Modulation && d.Bandwidth == dataRate.Bandwidth && d.BitRate == dataRate.BitRate && d.SpreadFactor == dataRate.SpreadFactor {
+			if d.downlink == true && d.Modulation == dataRate.Modulation && d.Bandwidth == dataRate.Bandwidth && d.BitRate == dataRate.BitRate && d.SpreadFactor == dataRate.SpreadFactor && d.OccupiedChannelWidth == dataRate.OccupiedChannelWidth && d.CodingRate == dataRate.CodingRate {
 				return i, nil
 			}
 		}
@@ -315,7 +329,7 @@ func (b *band) GetTXPowerOffset(txPower int) (int, error) {
 	return b.txPowerOffsets[txPower], nil
 }
 
-func (b *band) AddChannel(frequency, minDR, maxDR int) error {
+func (b *band) AddChannel(frequency uint32, minDR, maxDR int) error {
 	if !b.supportsExtraChannels {
 		return errors.New("lorawan/band: band does not support extra channels")
 	}
@@ -341,7 +355,7 @@ func (b *band) GetUplinkChannel(channel int) (Channel, error) {
 	return b.uplinkChannels[channel], nil
 }
 
-func (b *band) GetUplinkChannelIndex(frequency int, defaultChannel bool) (int, error) {
+func (b *band) GetUplinkChannelIndex(frequency uint32, defaultChannel bool) (int, error) {
 	for i, channel := range b.uplinkChannels {
 		if frequency == channel.Frequency && channel.custom != defaultChannel {
 			return i, nil
@@ -349,6 +363,31 @@ func (b *band) GetUplinkChannelIndex(frequency int, defaultChannel bool) (int, e
 	}
 
 	return 0, fmt.Errorf("lorawan/band: unknown channel for frequency: %d", frequency)
+}
+
+func (b *band) GetUplinkChannelIndexForFrequencyDR(frequency uint32, dr int) (int, error) {
+	for _, defaultChannel := range []bool{true, false} {
+		i, err := b.GetUplinkChannelIndex(frequency, defaultChannel)
+		if err != nil {
+			continue
+		}
+
+		c, err := b.GetUplinkChannel(i)
+		if err != nil {
+			return 0, errors.Wrap(err, "get channel error")
+		}
+
+		// there could be multiple channels using the same frequency, but with different data-rates.
+		// eg EU868:
+		//  channel 1 (868.3 DR 0-5)
+		//  channel x (868.3 DR 6)
+		if c.MinDR <= dr && c.MaxDR >= dr {
+			return i, nil
+		}
+
+	}
+
+	return 0, fmt.Errorf("no channel found for frequency: %d, dr: %d", frequency, dr)
 }
 
 func (b *band) GetDownlinkChannel(channel int) (Channel, error) {
@@ -461,8 +500,8 @@ func (b *band) getCFListChannels() *lorawan.CFList {
 
 	var i int
 	for _, c := range b.uplinkChannels {
-		if c.custom && i < len(pl.Channels) && c.MinDR == 0 && c.MaxDR == 5 {
-			pl.Channels[i] = uint32(c.Frequency)
+		if c.custom && i < len(pl.Channels) && c.MinDR == b.cFListMinDR && c.MaxDR == b.cFListMaxDR {
+			pl.Channels[i] = c.Frequency
 			i++
 		}
 	}
@@ -612,11 +651,15 @@ func channelIsActive(channels []int, i int) bool {
 func GetConfig(name Name, repeaterCompatible bool, dt lorawan.DwellTime) (Band, error) {
 	switch name {
 	case AS_923, AS923:
-		return newAS923Band(repeaterCompatible, dt)
+		return newAS923Band(repeaterCompatible, dt, 0, "")
 	case AS923_INDONESIA:
 		return newAS923IndonesiaBand(repeaterCompatible, dt)
 	case AS923_JAPAN:
 		return newAS923JapanBand(repeaterCompatible, dt)
+	case AS923_2:
+		return newAS923Band(repeaterCompatible, dt, -1800000, "-2")
+	case AS923_3:
+		return newAS923Band(repeaterCompatible, dt, -6600000, "-3")
 	case AU_915_928, AU915:
 		return newAU915Band(repeaterCompatible, dt)
 	case CN_470_510, CN470:
@@ -637,6 +680,8 @@ func GetConfig(name Name, repeaterCompatible bool, dt lorawan.DwellTime) (Band, 
 		return newUS902Band(repeaterCompatible)
 	case RU_864_870, RU864:
 		return newRU864Band(repeaterCompatible)
+	case ISM2400:
+		return newISM2400Band(repeaterCompatible)
 	default:
 		return nil, fmt.Errorf("lorawan/band: band %s is undefined", name)
 	}

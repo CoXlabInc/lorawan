@@ -18,7 +18,6 @@ func TestRU864Band(t *testing.T) {
 			So(band.GetDefaults(), ShouldResemble, Defaults{
 				RX2Frequency:     869100000,
 				RX2DataRate:      0,
-				MaxFCntGap:       16384,
 				ReceiveDelay1:    time.Second,
 				ReceiveDelay2:    time.Second * 2,
 				JoinAcceptDelay1: time.Second * 5,
@@ -49,7 +48,7 @@ func TestRU864Band(t *testing.T) {
 		})
 
 		Convey("Given five extra channels", func() {
-			chans := []int{
+			chans := []uint32{
 				864100000,
 				864300000,
 				864500000,
@@ -135,7 +134,7 @@ func TestRU864Band(t *testing.T) {
 			})
 
 			Convey("Then GetChannel takes the extra channels into consideration", func() {
-				tests := []int{
+				tests := []uint32{
 					868900000,
 					869100000,
 					864100000,

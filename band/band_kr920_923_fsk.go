@@ -18,7 +18,6 @@ func (b *kr920FskBand) GetDefaults() Defaults {
 	return Defaults{
 		RX2Frequency:     921900000,
 		RX2DataRate:      0,
-		MaxFCntGap:       16384,
 		ReceiveDelay1:    time.Second,
 		ReceiveDelay2:    time.Second * 2,
 		JoinAcceptDelay1: time.Second * 5,
@@ -26,7 +25,7 @@ func (b *kr920FskBand) GetDefaults() Defaults {
 	}
 }
 
-func (b *kr920FskBand) GetDownlinkTXPower(freq int) int {
+func (b *kr920FskBand) GetDownlinkTXPower(freq uint32) int {
 	switch freq {
 	case 920900000, 921100000, 921300000, 921500000, 921700000, 921900000, 922100000, 922300000, 922500000, 922700000, 922900000, 923100000, 923300000:
 		return 23 // ~200mW
@@ -41,7 +40,7 @@ func (b *kr920FskBand) GetDefaultMaxUplinkEIRP() float32 {
 	return 14 // ~25mW
 }
 
-func (b *kr920FskBand) GetPingSlotFrequency(lorawan.DevAddr, time.Duration) (int, error) {
+func (b *kr920FskBand) GetPingSlotFrequency(lorawan.DevAddr, time.Duration) (uint32, error) {
 	return 923100000, nil
 }
 
@@ -49,7 +48,7 @@ func (b *kr920FskBand) GetRX1ChannelIndexForUplinkChannelIndex(uplinkChannel int
 	return uplinkChannel, nil
 }
 
-func (b *kr920FskBand) GetRX1FrequencyForUplinkFrequency(uplinkFrequency int) (int, error) {
+func (b *kr920FskBand) GetRX1FrequencyForUplinkFrequency(uplinkFrequency uint32) (uint32, error) {
 	return uplinkFrequency, nil
 }
 
